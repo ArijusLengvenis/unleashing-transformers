@@ -8,7 +8,7 @@ def add_vqgan_FID_args(parser):
         "--n_samples",
         type=int,
         required=True,
-        help="Number of reconstructions to use for calculating FID"
+        help="Number of reconstruction+s to use for calculating FID"
     )
 
 
