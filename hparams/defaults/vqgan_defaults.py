@@ -12,24 +12,7 @@ class HparamsVQGAN(HparamsBase):
         self.gumbel_straight_through = False
         self.quantizer = 'nearest'
 
-        if self.dataset == 'churches' or self.dataset == "bedrooms":
-            self.attn_resolutions = [16]
-            self.batch_size = 3
-            self.ch_mult = [1, 1, 2, 2, 4]
-            self.codebook_size = 1024
-            self.disc_layers = 3
-            self.disc_weight_max = 1
-            self.disc_start_step = 30001
-            self.emb_dim = 256
-            self.img_size = 256
-            self.latent_shape = [1, 16, 16]
-            self.n_channels = 3
-            self.ndf = 64
-            self.nf = 128
-            self.perceptual_weight = 1.0
-            self.res_blocks = 2
-
-        elif self.dataset == 'ffhq':
+        if self.dataset == 'ffhq':
             self.attn_resolutions = [16]
             self.batch_size = 3
             self.ch_mult = [1, 1, 2, 2, 4]
