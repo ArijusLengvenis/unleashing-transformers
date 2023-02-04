@@ -68,14 +68,20 @@ class AbsorbingDiffusion(Sampler):
 
         mask = torch.zeros_like(x_t).to(torch.bool)
 
-        # TODO: offset so each n_masked_tokens is picked with equal probability
+        # offset so each n_masked_tokens is picked with equal probability
         n_masked_tokens = (t.float() / self.num_timesteps) * x_t.size(1)
         n_masked_tokens = torch.round(n_masked_tokens).to(torch.int64)
         n_masked_tokens[n_masked_tokens == 0] = 1
         ones = torch.ones_like(mask[0]).to(torch.bool).to(x_0.device)
+        
+        offset = torch.arange(x_0.size(1)).to(x_0.device)
+        offset = offset.repeat_interleave(n_masked_tokens.size(0), dim=0)
+        index = (offset + torch.arange(n_masked_tokens.size(0))) % x_0.size(1)
+        index = index + n_masked_tokens * x_0.size(1)
+        index = index.view(-1)
 
         for idx, n_tokens_to_mask in enumerate(n_masked_tokens):
-            index = torch.randperm(x_0.size(1))[:n_tokens_to_mask].to(x_0.device)
+            index = index[:n_tokens_to_mask * x_0.size(0)].to(x_0.device)
             mask[idx].scatter_(dim=0, index=index, src=ones)
 
         x_t[mask] = self.mask_id
@@ -204,7 +210,7 @@ class AbsorbingDiffusion(Sampler):
 
         autoregressive_step = 0
         for t in tqdm(list(reversed(list(range(1, time_steps+1))))):
-            t = torch.full((num_samples,), t, device='cuda', dtype=torch.long)
+            t = torch.full((num_samples,), t, device=device, dtype=torch.long)
 
             unmasking_method = 'autoregressive'
             if unmasking_method == 'random':
@@ -222,34 +228,40 @@ class AbsorbingDiffusion(Sampler):
                 autoregressive_step += 1
 
             # keep track of PoE probabilities
-            x_0_probs = torch.zeros((num_samples,) + shape + (self.codebook_size,), device='cuda')
+            x_0_probs = torch.zeros((num_samples,) + shape + (self.codebook_size,), device=device)
             # keep track of counts
-            count = torch.zeros((num_samples,) + shape, device='cuda')
+            count = torch.zeros((num_samples,) + shape, device=device)
 
-            # TODO: Monte carlo approximate this instead
-            for i in range(0, x_lim+1, step):
-                for j in range(0, y_lim+1, step):
-                    # collect local noisy area
-                    x_t_part = x_t[:, i:i+self.shape[1], j:j+self.shape[2]]
+            # number of Monte Carlo samples
+            N = 1000
 
-                    # increment count
-                    count[:, i:i+self.shape[1], j:j+self.shape[2]] += 1.0
+            for _ in range(N):
+                # sample random indices for i and j
+                i = torch.randint(0, x_lim+1, (num_samples,))
+                j = torch.randint(0, y_lim+1, (num_samples,))
 
-                    # flatten
-                    x_t_part = x_t_part.reshape(x_t_part.size(0), -1)
+                # collect local noisy area
+                x_t_part = x_t[:, i, j]
 
-                    # denoise
-                    x_0_logits_part = self._denoise_fn(x_t_part, t=t)
+                # increment count
+                count[:, i, j] += 1.0
 
-                    # unflatten
-                    x_0_logits_part = x_0_logits_part.reshape(x_t_part.size(0), self.shape[1], self.shape[2], -1)
+                # flatten
+                x_t_part = x_t_part.reshape(x_t_part.size(0), -1)
 
-                    # multiply probabilities
-                    # for mixture
-                    x_0_probs[:, i:i+self.shape[1], j:j+self.shape[2]] += torch.softmax(x_0_logits_part, dim=-1)
+                # denoise
+                x_0_logits_part = self._denoise_fn(x_t_part, t=t)
+
+                # unflatten
+                x_0_logits_part = x_0_logits_part.reshape(x_t_part.size(0), self.shape[1], self.shape[2], -1)
+
+                # multiply probabilities for mixture
+                x_0_probs[:, i, j] += torch.softmax(x_0_logits_part, dim=-1)
+
+            # average the accumulated probabilities
+            x_0_probs = x_0_probs / N
 
             # Mixture with Temperature
-            x_0_probs = x_0_probs / x_0_probs.sum(-1, keepdim=True)
             C = torch.tensor(x_0_probs.size(-1)).float()
             x_0_probs = torch.softmax((torch.log(x_0_probs) + torch.log(C)) / temp, dim=-1)
 

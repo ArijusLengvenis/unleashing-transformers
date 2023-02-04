@@ -37,16 +37,7 @@ class HparamsAutoregressive(HparamsBase):
         self.resid_pdrop = 0.
         self.temp = 1.0
 
-        if self.dataset == "churches" or "bedrooms":
-            self.batch_size = 20
-            self.bert_n_emb = 512
-            self.bert_n_head = 8
-            self.bert_n_layers = 24
-            self.block_size = 256
-            self.lr = 2e-4
-            self.warmup_iters = 10000
-
-        elif self.dataset == "ffhq":
+        if self.dataset == "ffhq":
             self.batch_size = 20
             self.bert_n_emb = 512
             self.bert_n_head = 8
