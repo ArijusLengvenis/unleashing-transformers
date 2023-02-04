@@ -18,7 +18,6 @@ from utils.log_utils import (
 
 torch.backends.cudnn.benchmark = True
 
-
 def main(H, vis):
     vqgan = VQGAN(H).cuda()
 
