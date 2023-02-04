@@ -20,7 +20,7 @@ class HparamsAbsorbing(HparamsBase):
             self.bert_n_emb = 512
             self.bert_n_head = 8
             self.bert_n_layers = 24
-            self.block_size = 256
+            self.block_size = 128
             self.lr = 1e-4
             self.warmup_iters = 30000
 
@@ -42,7 +42,7 @@ class HparamsAutoregressive(HparamsBase):
             self.bert_n_emb = 512
             self.bert_n_head = 8
             self.bert_n_layers = 24
-            self.block_size = 256
+            self.block_size = 128
             self.lr = 1e-4
             self.warmup_iters = 30000
         else:

@@ -13,7 +13,7 @@ class HparamsVQGAN(HparamsBase):
         self.quantizer = 'nearest'
 
         if self.dataset == 'ffhq':
-            self.attn_resolutions = [16]
+            self.attn_resolutions = [8]
             self.batch_size = 3
             self.ch_mult = [1, 1, 2, 2, 4]
             self.codebook_size = 1024
@@ -21,8 +21,8 @@ class HparamsVQGAN(HparamsBase):
             self.disc_weight_max = 1
             self.disc_start_step = 30001
             self.emb_dim = 256
-            self.img_size = 256
-            self.latent_shape = [1, 16, 16]
+            self.img_size = 128
+            self.latent_shape = [1, 8, 8]
             self.n_channels = 3
             self.ndf = 64
             self.nf = 128
